@@ -4,15 +4,8 @@ import { useCurrentAccount } from "@mysten/dapp-kit";
 import { getFullnodeUrl, SuiClient, SuiMoveNormalizedModules } from "@mysten/sui/client";
 import { Droplet, Package, Copy, X, Menu, ArrowDown, ArrowRight, Check, Book } from 'lucide-react';
 import { useEffect, useState } from "react";
+import { storage } from "./storage";
 
-interface Package {
-    id: string,
-    name: string,
-}
-interface DexInfo {
-    name: string;
-    packages: Package[];
-}
 
 export default function PackageStore() {
     const { currNetwork } = useNetwork();
@@ -57,25 +50,6 @@ export default function PackageStore() {
         getPackages();
     }, [currAccount, currNetwork]);
 
-    const storage: DexInfo[] = [
-        {
-            name: 'Centus',
-            packages: [
-                {
-                    id: '0x1eabed72c53feb3805120a081dc15963c204dc8d091542592abaf7a35689b2fb',
-                    name: 'CLMM',
-                },
-                {
-                    id: '0x368d13376443a8051b22b42a9125f6a3bc836422bb2d9c4a53984b8d6624c326',
-                    name: 'Aggregator V2'
-                },
-                {
-                    id: '0x43811be4677f5a5de7bf2dac740c10abddfaa524aee6b18e910eeadda8a2f6ae',
-                    name: 'Aggregator V1'
-                },
-            ]
-        },
-    ];
     async function copyTextToClipboard(text: string) {
         try {
             await navigator.clipboard.writeText(text);
@@ -178,10 +152,10 @@ export default function PackageStore() {
                                         onClick={() => toggle_own_package_detail(p)}
                                         className="flex gap-2 justify-between w-3/4 hover:cursor-pointer">
 
-                                        <Package/>
+                                        <Package />
                                         <div className="">{p.substring(0, 10)}...{p.slice(-2)}</div>
-                                        {check_show_own_package_detail(p) && <ArrowDown/>}
-                                        {!check_show_own_package_detail(p) && <ArrowRight/>}
+                                        {check_show_own_package_detail(p) && <ArrowDown />}
+                                        {!check_show_own_package_detail(p) && <ArrowRight />}
                                         <Copy
                                             className="size-4 hover:cursor-pointer"
                                             onClick={() => copyTextToClipboard(p)}
@@ -190,7 +164,7 @@ export default function PackageStore() {
                                     </div>
                                     {check_show_own_package_detail(p) && get_own_module_by_package(p).map(m => (
                                         <div key={m} className="w-1/2 flex gap-2 ">
-                                            <Book/>
+                                            <Book />
                                             {m}
                                         </div>
                                     ))}

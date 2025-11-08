@@ -76,7 +76,7 @@ export default function RootLayout({
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased')}>
         <QueryClientProvider client={queryClient}>
-          <SuiClientProvider networks={networks} defaultNetwork={network}>
+          <SuiClientProvider networks={networks} defaultNetwork={'testnet'}>
             <RegisterEnokiWallets />
             <WalletProvider>
               <div className="relative flex min-h-dvh flex-col">

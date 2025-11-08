@@ -34,6 +34,21 @@ export default function UMLDisplay({ umlString, functionName }: UMLDisplayProps)
 
         const blob = new Blob([response.data], { type: 'image/png' });
         imageUrl = URL.createObjectURL(blob);
+
+        // const fileName = "/tmp/anhdoo.png";
+        // const a = document.createElement('a');
+        // a.href = imageUrl;
+        // a.download = fileName;                   // <-- name of the saved file
+        // document.body.appendChild(a);
+        // a.click();
+
+        // // 5. Clean up
+        // document.body.removeChild(a);
+        // window.URL.revokeObjectURL(imageUrl);
+
+        // console.log('Download started:', fileName);
+
+
         setUmlImage(imageUrl);
       } catch (err) {
         console.error('Error generating UML image:', err);

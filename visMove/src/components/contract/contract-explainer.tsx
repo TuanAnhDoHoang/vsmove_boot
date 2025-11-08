@@ -71,8 +71,8 @@ import { getModuleMove, getPackageMove } from './getMoveCode';
 
 // Mock Data
 // import { mockContractCode, mockFunction } from '@/lib/mock-data';
-import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
-import {Transaction} from '@mysten/sui/transactions';
+import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit';
+import { Transaction } from '@mysten/sui/transactions';
 
 const FormSchema = z.object({
   packageId: z.string({ message: 'Please enter a valid package id' }),
@@ -105,8 +105,10 @@ export default function ContractExplainer() {
   const { currNetwork } = useNetwork();
   const [error, setError] = useState<string | null>(null);
   const currAccount = useCurrentAccount();
-  const {mutate: signAndExecute} = useSignAndExecuteTransaction();
-  
+  const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
+  const client = useSuiClient();
+
+
 
   const form = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
@@ -121,19 +123,41 @@ export default function ContractExplainer() {
     setPackageCode(packageCode);
     setModules(Array.from(packageCode.keys()));
   }
-  const payment = async () => {
-    const tx = new Transaction();
-    const amount = 1_000;
-    const vsmove = "0xf2b8341fc93d683292ba428dccf83ba443c15ee19b9f0719bdd0a7f75218c926";
-    const coin = tx.splitCoins(tx.gas, [amount]);
-    tx.transferObjects([coin], vsmove);
-   
+  const payment = async (): Promise<boolean> => {
+    if (currAccount) {
+      const tx = new Transaction();
+      const amount = 1_000;
+      const vsmove = "0xf2b8341fc93d683292ba428dccf83ba443c15ee19b9f0719bdd0a7f75218c926";
+      const coin = tx.splitCoins(tx.gas, [amount]);
+      tx.transferObjects([coin], vsmove);
+      await signAndExecute({
+        transaction: tx,
+        account: currAccount
+      }, {
+        onSuccess(res) { return true; },
+        onError(e) { alert!(`Got error executing transaction: ${e}`); return false; }
+      })
+      return true;
+    }
+    else {
+      alert("Sign In Wallet");
+    }
+    return false;
   }
+
   const handleExplainSubmit: SubmitHandler<FormValues> = async (props) => {
     //check is it exist or do payment
+    // if(findPackage()){
 
+    // }
+
+    const pay_result = await payment();
+    if (!pay_result) {
+      alert("Check Sign In or Error Payment Executing");
+      return;
+    }
+    // console.log("success payment");
     await getContractCode(props.packageId);
-
     setIsContractVisible(true);
     setExplanationResult(null);
     setSelectedFunction(null);
@@ -172,13 +196,49 @@ export default function ContractExplainer() {
     getFunctionsByModuleName(moduleName);
   }
   const handleChangeView = (mode: string) => {
-    if(mode === "Function" && viewCoinFlow === true){
+    if (mode === "Function" && viewCoinFlow === true) {
       setViewCoinFlow(false);
     }
-    if(mode === "Coin flow" && viewCoinFlow === false){
+    if (mode === "Coin flow" && viewCoinFlow === false) {
       setViewCoinFlow(true);
     }
   }
+  const create_expl = async () => {
+    const pid = "0xf8bfd9c5714ab5701d912a402819205b603b605c236cfc0cb642d982d8aac7d2";
+    if (currAccount) {
+      const response = await client.getOwnedObjects({
+        owner: currAccount.address,
+        options:{
+          showContent: true
+        }
+      });
+      const registry = response.data;
+      console.log(registry);
+      if (packageid && selectedModule && selectedFunction && explanationResult?.explanation) {
+        const tx = new Transaction();
+        tx.setGasBudget(1_000_000_000);
+        const expl = tx.moveCall({
+          target: `${pid}::vmc::create_explanation`,
+          arguments: [
+            tx.pure.string("unknow"),
+            tx.pure.address(packageid),
+            tx.pure.string(selectedModule),
+            tx.pure.string(selectedFunction),
+            tx.pure.string(explanationResult?.explanation),
+            tx.pure.option("string", "unknow")
+          ]
+        });
+        signAndExecute({
+          transaction: tx,
+          account: currAccount,
+        }, {
+          onSuccess(r) { },
+          onError(e) { alert(e) }
+        })
+      }
+    }
+  }
+
   return (
     <div className="space-y-8">
       <Card>
@@ -304,11 +364,13 @@ export default function ContractExplainer() {
                       // onClick={}
                       className='hover:cursor-pointer
                     absolute top-2 right-2 h-6 w-6 
-                    flex items-center justify-center rounded-full'>
+                    flex items-center justify-center rounded-full'
+                      onClick={create_expl}
+                    >
                       <Upload className="" />
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="space-y-4">
                     <p className="text-muted-foreground leading-relaxed">{explanationResult.explanation}</p>
 
@@ -326,22 +388,22 @@ export default function ContractExplainer() {
                   </CardContent>
                 </Card>
 
-                {viewCoinFlow? 
-                <div 
-                  className='border border-1px border-white rounded-md p-5'
+                {viewCoinFlow ?
+                  <div
+                    className='border border-1px border-white rounded-md p-5'
                   >
-                  {explanationResult.coinFlow}
-                </div>
-                :
-                <div className='code-diagram'>
-                  <UMLDisplay
-                    umlString={explanationResult.umlSequenceDiagram}
-                    functionName={selectedFunction || 'Diagram'}
-                  />
-                  {/* <div className='whitespace-pre-wrap border border-1px border-gray-200 rounded-md p-4 overflow-scroll'>
+                    {explanationResult.coinFlow}
+                  </div>
+                  :
+                  <div className='code-diagram'>
+                    <UMLDisplay
+                      umlString={explanationResult.umlSequenceDiagram}
+                      functionName={selectedFunction || 'Diagram'}
+                    />
+                    {/* <div className='whitespace-pre-wrap border border-1px border-gray-200 rounded-md p-4 overflow-scroll'>
                     {moduleCode}
                   </div> */}
-                </div>
+                  </div>
                 }
               </div>
             )}
