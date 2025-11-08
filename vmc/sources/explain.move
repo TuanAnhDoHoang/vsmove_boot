@@ -1,51 +1,62 @@
-module vmc::explain;
-use std::string::String;
-use sui::table::Table;
-use sui::tx_context::TxContext;
-public struct Explaination has key, store{
-    id: UID,
-    name: String, //title: example: Centus
+/// Legacy explanation module - kept for backward compatibility
+module vmc::explain {
+    use std::string::String;
+    use sui::object::{Self, UID};
+    use sui::tx_context::TxContext;
+    use sui::transfer;
+    use vmc::vmc;
 
-    package_id: address,
-    module_name: String,
-    function_name: String,
-}
+    /// Legacy explanation struct
+    public struct Explanation has key, store {
+        id: UID,
+        name: String,
+        package_id: address,
+        module_name: String,
+        function_name: String,
+    }
 
+    /// Create new explanation using the main vmc module
+    public fun create_explanation_wrapper(
+        admin_cap: &vmc::AdminCap,
+        registry: &mut vmc::ExplanationRegistry,
+        name: String,
+        package_id: address,
+        module_name: String,
+        function_name: String,
+        explanation_text: String,
+        ctx: &mut TxContext
+    ) {
+        vmc::create_explanation(
+            admin_cap,
+            registry,
+            name,
+            package_id,
+            module_name,
+            function_name,
+            explanation_text,
+            ctx
+        );
+    }
 
-public fun new_Explanation(
-    name: String, //title: example: Centus
-    package_id: address,
-    module_name: String,
-    function_name: String,
-    ctx: &mut TxContext 
-): Explaination{
-    Explaination {
-        id: object::new(ctx),
-        name,
-        package_id,
-        module_name,
-        function_name,
+    /// Legacy function for backward compatibility
+    public fun new_explanation(
+        name: String,
+        package_id: address,
+        module_name: String,
+        function_name: String,
+        ctx: &mut TxContext 
+    ): Explanation {
+        Explanation {
+            id: object::new(ctx),
+            name,
+            package_id,
+            module_name,
+            function_name,
+        }
+    }
+
+    /// Get explanation info
+    public fun get_explanation_details(explanation: &Explanation): (String, address, String, String) {
+        (explanation.name, explanation.package_id, explanation.module_name, explanation.function_name)
     }
 }
-
-public struct ExplainationRegistry has key{
-    id: UID,
-    explains: Table<String, vector<Explaination>>
-}
-
-public fun new_explaination_registry(ctx: &mut TxContext): ExplainationRegistry{
-    ExplainationRegistry{
-        id: object::new(ctx),
-        explains: sui::table::new<String, vector<Explaination>>()
-    }
-}
-
-
-public fun add_to_registry(registry: &mut ExplainationRegistry, expl: Explaination){
-    let exist_expl = registry.explains.borrow_mut(expl.name);
-    exist_expl.push_back(expl);
-}
-
-// public fun borrow_expl_from_registry(registry: &mut ExplainationRegistry, name: String, id: ): &Explaination{
-
-// }
